@@ -1026,6 +1026,21 @@
             display: none;
         }
 
+        /* Success Alert */
+        .success-alert {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 16px;
+            border-radius: var(--border-radius);
+            margin-bottom: 24px;
+            display: none;
+        }
+
+        .success-alert.show {
+            display: block;
+        }
+
         @media (max-width: 768px) {
             .form-grid {
                 grid-template-columns: 1fr;
@@ -1662,9 +1677,20 @@
                 <p class="subtitle">Tell us about your project and we'll get back to you within 24 hours</p>
             </div>
             
-            <form name="contact" method="POST" data-netlify="true" netlify-honeypot="bot-field" class="contact-form-container">
-                <!-- Hidden field for bot detection -->
+            <div class="success-alert" id="success-alert">
+                🚀 <strong>Message sent!</strong> Thanks for reaching out. We'll get back to you within 24 hours with a custom quote.
+            </div>
+            
+            <form name="contact" method="POST" data-netlify="true" netlify-honeypot="bot-field" class="contact-form-container" action="/thank-you.html">
+                <!-- Hidden fields for automation -->
                 <input type="hidden" name="form-name" value="contact" />
+                <input type="hidden" name="source" value="website" />
+                <input type="hidden" name="timestamp" value="" />
+                <input type="hidden" name="page_url" value="" />
+                <input type="hidden" name="user_agent" value="" />
+                <input type="hidden" name="referrer" value="" />
+                
+                <!-- Honeypot field for bot detection -->
                 <p class="hidden">
                     <label>Don't fill this out if you're human: <input name="bot-field" /></label>
                 </p>
@@ -1714,16 +1740,46 @@
                 </div>
                 
                 <div class="form-group">
+                    <label for="website_type">What type of website do you need?</label>
+                    <select id="website_type" name="website_type">
+                        <option value="">Select type...</option>
+                        <option value="business">Business/Service website</option>
+                        <option value="portfolio">Portfolio/Creative</option>
+                        <option value="ecommerce">E-commerce/Online store</option>
+                        <option value="blog">Blog/Content site</option>
+                        <option value="landing">Landing page</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
                     <label for="message">Tell us about your project *</label>
-                    <textarea id="message" name="message" rows="5" placeholder="Describe your business, what you want your website to accomplish, any specific features you need..." required></textarea>
+                    <textarea id="message" name="message" rows="5" placeholder="Describe your business, what you want your website to accomplish, any specific features you need, existing website URL (if any)..." required></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="heard_about">How did you hear about us?</label>
+                    <select id="heard_about" name="heard_about">
+                        <option value="">Select source...</option>
+                        <option value="google">Google search</option>
+                        <option value="referral">Friend/colleague referral</option>
+                        <option value="social">Social media</option>
+                        <option value="portfolio">Saw our portfolio work</option>
+                        <option value="other">Other</option>
+                    </select>
                 </div>
                 
                 <div class="form-group checkbox-group">
                     <input type="checkbox" id="newsletter" name="newsletter" value="yes">
-                    <label for="newsletter">I'd like to receive helpful web design tips and updates</label>
+                    <label for="newsletter">I'd like to receive helpful web design tips and Launch Tuesday updates</label>
                 </div>
                 
-                <button type="submit" class="btn btn-primary btn-large">
+                <div class="form-group checkbox-group">
+                    <input type="checkbox" id="priority" name="priority" value="yes">
+                    <label for="priority">🚨 This is urgent - I need priority scheduling</label>
+                </div>
+                
+                <button type="submit" class="btn btn-primary btn-large" id="submit-btn">
                     <svg class="icon" viewBox="0 0 24 24">
                         <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
                         <polyline points="22,6 12,13 2,6"/>
@@ -1757,6 +1813,129 @@
     </footer>
 
     <script>
+        // Enhanced form automation and tracking
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.querySelector('form[name="contact"]');
+            const submitBtn = document.getElementById('submit-btn');
+            const successAlert = document.getElementById('success-alert');
+            
+            // Auto-fill hidden tracking fields
+            function fillHiddenFields() {
+                const timestampField = document.querySelector('input[name="timestamp"]');
+                const pageUrlField = document.querySelector('input[name="page_url"]');
+                const userAgentField = document.querySelector('input[name="user_agent"]');
+                const referrerField = document.querySelector('input[name="referrer"]');
+                
+                if (timestampField) {
+                    timestampField.value = new Date().toISOString();
+                }
+                if (pageUrlField) {
+                    pageUrlField.value = window.location.href;
+                }
+                if (userAgentField) {
+                    userAgentField.value = navigator.userAgent;
+                }
+                if (referrerField) {
+                    referrerField.value = document.referrer || 'Direct';
+                }
+            }
+            
+            // Call immediately and before form submission
+            fillHiddenFields();
+            
+            // Enhanced form submission tracking
+            if (form) {
+                form.addEventListener('submit', function(e) {
+                    // Update timestamp right before submission
+                    fillHiddenFields();
+                    
+                    // Add loading state to button
+                    if (submitBtn) {
+                        submitBtn.innerHTML = `
+                            <svg class="icon" viewBox="0 0 24 24">
+                                <circle cx="12" cy="12" r="10"/>
+                                <path d="M12 6v6l4 2"/>
+                            </svg>
+                            Sending Message...
+                        `;
+                        submitBtn.disabled = true;
+                    }
+                    
+                    // Track form submission event (optional analytics)
+                    if (typeof gtag !== 'undefined') {
+                        gtag('event', 'form_submission', {
+                            'event_category': 'Contact',
+                            'event_label': 'Launch Tuesday Contact Form'
+                        });
+                    }
+                });
+                
+                // Form validation enhancements
+                const requiredFields = form.querySelectorAll('[required]');
+                requiredFields.forEach(field => {
+                    field.addEventListener('blur', function() {
+                        if (!this.value.trim()) {
+                            this.style.borderColor = '#ff6b35';
+                        } else {
+                            this.style.borderColor = '#e9ecef';
+                        }
+                    });
+                });
+                
+                // Smart budget/timeline highlighting
+                const budgetField = document.getElementById('budget');
+                const timelineField = document.getElementById('timeline');
+                
+                if (budgetField) {
+                    budgetField.addEventListener('change', function() {
+                        const value = this.value;
+                        if (value === '1000+') {
+                            this.style.borderColor = '#28a745'; // Green for high value
+                            this.style.backgroundColor = '#f8fff9';
+                        } else if (value === '500-1000') {
+                            this.style.borderColor = '#ffc107'; // Yellow for medium
+                            this.style.backgroundColor = '#fffef8';
+                        } else if (value === '500') {
+                            this.style.borderColor = '#17a2b8'; // Blue for standard
+                            this.style.backgroundColor = '#f8fcff';
+                        }
+                    });
+                }
+                
+                if (timelineField) {
+                    timelineField.addEventListener('change', function() {
+                        if (this.value === 'asap') {
+                            this.style.borderColor = '#dc3545'; // Red for urgent
+                            this.style.backgroundColor = '#fff8f8';
+                            // Auto-check priority checkbox
+                            const priorityCheckbox = document.getElementById('priority');
+                            if (priorityCheckbox) {
+                                priorityCheckbox.checked = true;
+                            }
+                        }
+                    });
+                }
+            }
+            
+            // UTM parameter capture (for marketing tracking)
+            function captureUTMParams() {
+                const urlParams = new URLSearchParams(window.location.search);
+                const utmSource = urlParams.get('utm_source');
+                const utmMedium = urlParams.get('utm_medium');
+                const utmCampaign = urlParams.get('utm_campaign');
+                
+                if (utmSource || utmMedium || utmCampaign) {
+                    // Store in hidden field for tracking
+                    const sourceField = document.querySelector('input[name="source"]');
+                    if (sourceField && utmSource) {
+                        sourceField.value = `${utmSource}${utmMedium ? ' - ' + utmMedium : ''}`;
+                    }
+                }
+            }
+            
+            captureUTMParams();
+        });
+
         // Animated Stats on Scroll
         const observerOptions = {
             threshold: 0.5,
